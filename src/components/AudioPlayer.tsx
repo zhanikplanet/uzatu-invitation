@@ -3,43 +3,33 @@ import { Music, Volume2, VolumeX } from 'lucide-react';
 
 export const AudioPlayer: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const synthesizerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // A beautiful traditional-sounding Kazakh melody in MIDI notes to synthesize if MP3 loads slowly
+  // Мелодия домбры
   const melodyNotes = [
-    // Nuray's theme - beautiful pentatonic motif (A minor pentatonic: A, C, D, E, G, A)
     { note: 60, dur: 0.4 }, { note: 64, dur: 0.4 }, { note: 67, dur: 0.8 },
     { note: 69, dur: 0.8 }, { note: 67, dur: 0.4 }, { note: 64, dur: 0.4 },
     { note: 62, dur: 0.8 }, { note: 60, dur: 0.8 }, { note: 64, dur: 0.4 },
     { note: 62, dur: 0.4 }, { note: 60, dur: 0.8 }, { note: 57, dur: 1.2 },
-    // Repeat up an octave
     { note: 72, dur: 0.4 }, { note: 76, dur: 0.4 }, { note: 79, dur: 0.8 },
     { note: 81, dur: 0.8 }, { note: 79, dur: 0.4 }, { note: 76, dur: 0.4 },
     { note: 74, dur: 0.8 }, { note: 72, dur: 0.8 }, { note: 76, dur: 0.4 },
     { note: 74, dur: 0.4 }, { note: 72, dur: 0.8 }, { note: 69, dur: 1.2 },
   ];
 
-  // Map MIDI note to frequency
-  const midiToFreq = (note: number) => {
-    return 440 * Math.pow(2, (note - 69) / 12);
-  };
+  const midiToFreq = (note: number) => 440 * Math.pow(2, (note - 69) / 12);
 
-  // Synthesize a beautiful traditional "dombra" pluck sound
   const playDombraPluck = (ctx: AudioContext, freq: number, time: number) => {
-    // A dombra has two strings plucked almost simultaneously (double pluck effect)
     for (let i = 0; i < 2; i++) {
-      const delay = i * 0.035; // tiny strum delay
+      const delay = i * 0.035;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
-      // Traditional dombra is rich in harmonics - triangle wave with high frequency filter
       osc.type = i === 0 ? 'triangle' : 'sine';
-      osc.frequency.setValueAtTime(freq * (i === 1 ? 1.002 : 1), time + delay); // slight detune
+      osc.frequency.setValueAtTime(freq * (i === 1 ? 1.002 : 1), time + delay);
       
-      // Filter to dampen high-frequency buzz down for warm wooden feel
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(1200, time + delay);
@@ -67,21 +57,18 @@ export const AudioPlayer: React.FC = () => {
       ctx.resume();
     }
 
+    stopSynthesis(); // Убираем старые таймеры перед запуском
+
     let noteIdx = 0;
     let nextTime = ctx.currentTime;
 
     const playNext = () => {
-      if (!isPlaying) return;
-      
       const item = melodyNotes[noteIdx];
-      // Play note
       playDombraPluck(ctx, midiToFreq(item.note), nextTime);
       
-      // Schedule next note
       nextTime += item.dur;
       noteIdx = (noteIdx + 1) % melodyNotes.length;
 
-      // Plan next tick
       const delayMs = item.dur * 1000;
       synthesizerIntervalRef.current = setTimeout(playNext, delayMs);
     };
@@ -96,57 +83,98 @@ export const AudioPlayer: React.FC = () => {
     }
   };
 
-  // Try playing real beautiful instrumental MP3 first, fallback to synthesized if blocked
-  const togglePlay = async () => {
-    const nextState = !isPlaying;
-    setIsPlaying(nextState);
-
-    // Audio context initialization
+  // Единая функция для принудительного старта (и для автоплея, и для кнопки)
+  const playAudioTrack = async () => {
+    setIsPlaying(true);
+    
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
 
-    if (nextState) {
-      try {
-        if (audioRef.current) {
-          await audioRef.current.play();
-        } else {
-          startSynthesis();
-        }
-      } catch (err) {
-        console.warn("Audio file auto-play failed or blocked. Resorting to fallback synthesizer.", err);
-        // Play fallback synth
+    try {
+      if (audioRef.current) {
+        await audioRef.current.play();
+      } else {
         startSynthesis();
       }
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      stopSynthesis();
+    } catch (err) {
+      console.warn("MP3 заблокирован браузером. Запускаем встроенный синтезатор домбры.", err);
+      startSynthesis();
     }
   };
 
-  useEffect(() => {
-    if (isPlaying && !audioRef.current) {
-      startSynthesis();
+  // Функция для остановки
+  const pauseAudioTrack = () => {
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
     }
+    stopSynthesis();
+  };
+
+  // Ручное управление по клику на кнопку
+  const togglePlay = () => {
+    if (isPlaying) {
+      pauseAudioTrack();
+    } else {
+      playAudioTrack();
+    }
+  };
+
+  // АВТОПЛЕЙ ХАК ДЛЯ ПРОДАКШЕНА
+  useEffect(() => {
+    const attemptAutoplay = async () => {
+      // Пробуем запуститься мгновенно
+      try {
+        if (audioRef.current) {
+          await audioRef.current.play();
+          setIsPlaying(true);
+          removeAllListeners(); // Если завелось сразу, убираем «слушателей»
+        }
+      } catch (e) {
+        console.log("Браузер ждет взаимодействия с экраном для включения музыки...");
+      }
+    };
+
+    // Активация при любом первом движении гостя на сайте
+    const handleUserInteraction = () => {
+      playAudioTrack();
+      removeAllListeners(); // Активировали один раз и забыли
+    };
+
+    const removeAllListeners = () => {
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('scroll', handleUserInteraction);
+      window.removeEventListener('mousemove', handleUserInteraction);
+    };
+
+    // Запуск проверки
+    attemptAutoplay();
+
+    // Вешаем страховку на любые действия пользователя
+    window.addEventListener('click', handleUserInteraction, { passive: true });
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    window.addEventListener('scroll', handleUserInteraction, { passive: true });
+    window.addEventListener('mousemove', handleUserInteraction, { passive: true });
+
     return () => {
+      removeAllListeners();
       stopSynthesis();
     };
-  }, [isPlaying]);
+  }, []);
 
   return (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
-      {/* Hidden audio element loading a pristine, high-quality traditional Kazakh wedding melody */}
       <audio 
         ref={audioRef}
-        src="/uzatu-invitation/ukili-kamshat.mp3" // Premium fallback standard loop
+        src="/uzatu-invitation/ukili-kamshat.mp3" 
         loop
         preload="auto"
         className="hidden"
       />
 
-      {/* Pulsing playing bars representation */}
+      {/* Анимированные пульсирующие полоски звука */}
       {isPlaying && (
         <div className="flex items-end gap-[2px] h-4 px-2 py-1 bg-white/80 backdrop-blur-md rounded-full border border-[#DFBA81]/30">
           <div className="w-[2px] bg-[#C5A074] rounded-full animate-[bounce_0.8s_infinite_0.1s] h-3"></div>
@@ -156,20 +184,18 @@ export const AudioPlayer: React.FC = () => {
         </div>
       )}
 
-      {/* Beautiful ornamental circle play buttons */}
+      {/* Кнопка управления */}
       <button
         onClick={togglePlay}
         id="audio-toggle-btn"
         className="w-12 h-12 flex items-center justify-center rounded-full bg-white/90 shadow-lg border border-[#DFBA81]/40 hover:scale-105 transition-all active:scale-95 duration-350 cursor-pointer group relative overflow-hidden"
         title={isPlaying ? "Әуенді өшіру" : "Әуенді қосу"}
       >
-        {/* Ambient gold glow ring around active button */}
         {isPlaying && (
           <span className="absolute inset-0 rounded-full border-2 border-[#DFBA81] animate-ping opacity-40"></span>
         )}
 
-        {/* Traditional circular spinning lines when active */}
-        <div className={`absolute inset-0.5 border border-dashed border-[#C5A074]/30 rounded-full ${isPlaying ? 'animate-spin-slow' : ''}`}></div>
+        <div className={`absolute inset-0.5 border border-dashed border-[#C5A074]/30 rounded-full ${isPlaying ? 'animate-[spin_20s_linear_infinite]' : ''}`}></div>
 
         {isPlaying ? (
           <Volume2 className="w-5 h-5 text-[#9E7C4F] group-hover:scale-110 transition-transform" />
