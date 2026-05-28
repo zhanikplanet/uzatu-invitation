@@ -27,9 +27,9 @@ export const RSVPForm: React.FC = () => {
 
     // TELEGRAM
     const TELEGRAM_BOT_TOKEN =
-      '8428721933:AAG3Bl1t1gKnATnPUyNNT5xs5ghV5CdG29c';
+      '8701075074:AAHdFho8pBFRlAjnKlM7a5XpjeXXXptJu7M';
 
-    const TELEGRAM_CHAT_ID = '8251442133';
+    const TELEGRAM_CHAT_ID = '1198060039';
 
     // Красивый текст ответа
     let statusText = '';
