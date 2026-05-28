@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { RSVPResponse } from '../types';
 import { Check, ClipboardList, Trash2, Users } from 'lucide-react';
 
+// Расширяем тип, чтобы TypeScript не ругался, если в общем файле типов нет guestCount
+interface ExtendedRSVPResponse extends Omit<RSVPResponse, 'attendance'> {
+  attendance: 'yes' | 'no';
+  guestCount: number;
+}
+
 export const RSVPForm: React.FC = () => {
   const [name, setName] = useState('');
-  const [attendance, setAttendance] = useState<'yes' | 'couple' | 'no'>('yes');
+  const [attendance, setAttendance] = useState<'yes' | 'no'>('yes');
+  const [guestCount, setGuestCount] = useState<number>(1);
   const [submitted, setSubmitted] = useState(false);
-  const [responses, setResponses] = useState<RSVPResponse[]>([]);
+  const [responses, setResponses] = useState<ExtendedRSVPResponse[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
 
   // Load responses from LocalStorage
@@ -25,10 +32,11 @@ export const RSVPForm: React.FC = () => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newResponse: RSVPResponse = {
-      id: Math.random().toString(36).substr(2, 9),
+    const newResponse: ExtendedRSVPResponse = {
+      id: Math.random().toString(36).substring(2, 9),
       name: name.trim(),
       attendance,
+      guestCount: attendance === 'yes' ? guestCount : 0, // если не идет, то 0 человек
       timestamp: new Date().toLocaleDateString('kk-KZ', {
         hour: '2-digit',
         minute: '2-digit'
@@ -40,6 +48,7 @@ export const RSVPForm: React.FC = () => {
     localStorage.setItem('uzatu_rsvp_responses', JSON.stringify(updated));
     setSubmitted(true);
     setName('');
+    setGuestCount(1); // сбрасываем счетчик для следующего раза
   };
 
   const removeResponse = (id: string) => {
@@ -48,15 +57,12 @@ export const RSVPForm: React.FC = () => {
     localStorage.setItem('uzatu_rsvp_responses', JSON.stringify(updated));
   };
 
-  // Stats calculate
-  const stats = responses.reduce((acc, curr) => {
-    if (curr.attendance === 'yes') acc.solo += 1;
-    else if (curr.attendance === 'couple') acc.couple += 2; // couples are 2 attendees
-    else acc.no += 1;
-    return acc;
-  }, { solo: 0, couple: 0, no: 0 });
+  // Красивый и точный подсчет статистики на основе нового счетчика
+  const totalAttendees = responses.reduce((acc, curr) => {
+    return acc + (curr.guestCount || 0);
+  }, 0);
 
-  const totalAttendees = stats.solo + stats.couple;
+  const totalDeclined = responses.filter(r => r.attendance === 'no').length;
 
   return (
     <div id="rsvp-section" className="w-full max-w-sm mx-auto px-4 my-8">
@@ -89,7 +95,7 @@ export const RSVPForm: React.FC = () => {
                 Аты-жөніңіз:
               </label>
               <p className="text-[10px] text-[#A68864] leading-relaxed">
-                (Жұбыңызбен келетін болсаңыз, есіміңізді бірге жазуыңызды өтінеміз)
+                (Егер бірнеше адам болып келсеңіздер, есімдеріңізді бірге жазуыңызды өтінеміз)
               </p>
               <input
                 type="text"
@@ -106,15 +112,18 @@ export const RSVPForm: React.FC = () => {
               <label className="block text-xs font-semibold text-[#8C6239] tracking-wider uppercase font-sans">
                 Достық ниетіңіз:
               </label>
-              
+
               <div className="space-y-2">
-                {/* Option 1: Solo */}
+                {/* Option 1: Attending */}
                 <label className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#DFBA81]/25 hover:border-[#DFBA81]/60 transition-colors cursor-pointer group shadow-sm">
                   <input
                     type="radio"
                     name="attendance"
                     checked={attendance === 'yes'}
-                    onChange={() => setAttendance('yes')}
+                    onChange={() => {
+                      setAttendance('yes');
+                      if (guestCount === 0) setGuestCount(1);
+                    }}
                     className="w-4 h-4 accent-[#8C6239] cursor-pointer"
                   />
                   <span className="text-xs font-medium text-[#8C6239] font-sans group-hover:translate-x-0.5 transition-transform">
@@ -122,27 +131,48 @@ export const RSVPForm: React.FC = () => {
                   </span>
                 </label>
 
-                {/* Option 2: Couple */}
-                <label className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#DFBA81]/25 hover:border-[#DFBA81]/60 transition-colors cursor-pointer group shadow-sm">
-                  <input
-                    type="radio"
-                    name="attendance"
-                    checked={attendance === 'couple'}
-                    onChange={() => setAttendance('couple')}
-                    className="w-4 h-4 accent-[#8C6239] cursor-pointer"
-                  />
-                  <span className="text-xs font-medium text-[#8C6239] font-sans group-hover:translate-x-0.5 transition-transform">
-                    Жұбыммен келемін
-                  </span>
-                </label>
+                {/* Interactive Counter for Guests (Shows only when 'yes' is selected) */}
+                {attendance === 'yes' && (
+                  <div className="p-3 bg-white border border-[#DFBA81]/20 rounded-xl space-y-2.5 animate-[fadeIn_0.2s_ease-out] text-center shadow-inner">
+                    <span className="text-[11px] font-medium text-[#8C6239] block">
+                      Өзіңізбен бірге қанша адам болады?<br />
+                      <span className="text-[10px] text-[#A68864] font-normal">(Өзіңізді қоса есептегенде)</span>
+                    </span>
 
-                {/* Option 3: Decline */}
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
+                        className="w-8 h-8 rounded-full border border-[#DFBA81]/40 bg-[#FCFAF6] flex items-center justify-center text-sm font-bold text-[#8C6239] active:scale-90 transition-transform select-none cursor-pointer"
+                      >
+                        –
+                      </button>
+
+                      <span className="font-serif text-xl font-bold text-[#8C6239] min-w-[24px]">
+                        {guestCount}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setGuestCount(guestCount + 1)}
+                        className="w-8 h-8 rounded-full border border-[#DFBA81]/40 bg-[#FCFAF6] flex items-center justify-center text-sm font-bold text-[#8C6239] active:scale-90 transition-transform select-none cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Option 2: Decline */}
                 <label className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#DFBA81]/25 hover:border-[#DFBA81]/60 transition-colors cursor-pointer group shadow-sm">
                   <input
                     type="radio"
                     name="attendance"
                     checked={attendance === 'no'}
-                    onChange={() => setAttendance('no')}
+                    onChange={() => {
+                      setAttendance('no');
+                      setGuestCount(0);
+                    }}
                     className="w-4 h-4 accent-[#8C6239] cursor-pointer"
                   />
                   <span className="text-xs font-medium text-[#8C6239]/80 font-sans group-hover:translate-x-0.5 transition-transform">
@@ -164,13 +194,13 @@ export const RSVPForm: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto shadow-sm">
               <span className="text-rose-500 font-bold text-2xl font-serif">♥</span>
             </div>
-            
+
             <div className="space-y-2">
               <h4 className="font-serif text-xl font-semibold text-[#8C6239]">
                 Рақмет!
               </h4>
-              <p className="text-xs text-[#9E7C4F] max-w-xs mx-auto px-4 leading-relaxed leading-5">
-                Жауабыңыз ойдағыдай қабылданды. Нұрайдың қыз ұзату тойында сізді асыға күтеміз!
+              <p className="text-xs text-[#9E7C4F] max-w-xs mx-auto px-4 leading-relaxed">
+                Жауабыңыз ойдағыдай қабылданды. Ақжанның қыз ұзату тойында сізді асыға күтеміз!
               </p>
             </div>
 
@@ -187,7 +217,18 @@ export const RSVPForm: React.FC = () => {
       {/* Hidden Collapsible Panel for Hosts to View Collected Responses */}
       <div className="mt-6 flex flex-col items-center">
         <button
-          onClick={() => setShowAdmin(!showAdmin)}
+          onClick={() => {
+            if (showAdmin) {
+              setShowAdmin(false);
+              return;
+            }
+            const password = prompt('Той иелері үшін құпия сөзді енгізіңіз (Пароль):');
+            if (password === '1808') {
+              setShowAdmin(true);
+            } else if (password !== null) {
+              alert('Құпия сөз қате! Қайта тексеріңіз.');
+            }
+          }}
           className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#DFBA81]/20 bg-white/70 backdrop-blur-sm shadow-sm hover:bg-[#FCFAF6] hover:border-[#DFBA81]/40 transition-colors text-[10px] font-bold tracking-wider uppercase text-[#9E7C4F] cursor-pointer"
         >
           <ClipboardList className="w-3.5 h-3.5" />
@@ -201,31 +242,15 @@ export const RSVPForm: React.FC = () => {
           <div className="w-full mt-3 bg-white border border-[#DFBA81]/30 rounded-2xl p-4 shadow-lg space-y-4 animate-[fadeIn_0.3s_ease-out]">
             <div className="flex items-center justify-between border-b border-[#DFBA81]/10 pb-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6239] uppercase font-sans">
-                <Users className="w-4 h-4 text-[#C5A074]" /> Статистика
+                <Users className="w-4 h-4 text-[#C5A074]" /> Жалпы статистика
               </div>
-              <span className="text-[10px] font-bold text-[#A68864] uppercase tracking-wider">
-                Келетіндер: <strong className="text-emerald-600 font-sans">{totalAttendees} адам</strong>
+              <span className="text-xs font-bold text-[#A68864] uppercase tracking-wider">
+                Барлығы: <strong className="text-emerald-600 font-sans text-sm">{totalAttendees} адам келеді</strong>
               </span>
             </div>
 
-            {/* Micro Stats Display */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 bg-emerald-50/50 rounded-xl border border-emerald-500/10">
-                <span className="block text-[10px] text-emerald-700/80 font-semibold uppercase leading-tight">Келеді</span>
-                <span className="font-serif text-sm font-bold text-emerald-800 font-sans">{stats.solo}</span>
-              </div>
-              <div className="p-2 bg-teal-50/50 rounded-xl border border-teal-500/10">
-                <span className="block text-[10px] text-teal-700/80 font-semibold uppercase leading-tight">Жұбымен</span>
-                <span className="font-serif text-sm font-bold text-teal-800 font-sans">{stats.couple / 2}</span>
-              </div>
-              <div className="p-2 bg-rose-50/50 rounded-xl border border-rose-500/10">
-                <span className="block text-[10px] text-rose-700/80 font-semibold uppercase leading-tight">Келмейді</span>
-                <span className="font-serif text-sm font-bold text-rose-800 font-sans">{stats.no}</span>
-              </div>
-            </div>
-
             {/* Responses List */}
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {responses.length === 0 ? (
                 <p className="text-center text-[10px] italic text-[#A68864]/70 py-4">
                   Әзірге жауаптар жоқ
@@ -238,13 +263,14 @@ export const RSVPForm: React.FC = () => {
                         {resp.name}
                       </p>
                       <div className="flex items-center gap-1.5 text-[10px] text-[#A68864]">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          resp.attendance === 'no' ? 'bg-rose-500' : 'bg-emerald-500'
-                        }`}></span>
-                        <span>
-                          {resp.attendance === 'yes' && 'Келеді (1 адам)'}
-                          {resp.attendance === 'couple' && 'Жұбымен бірге (2 адам)'}
-                          {resp.attendance === 'no' && 'Қатыса алмайды'}
+                        <span className={`w-1.5 h-1.5 rounded-full ${resp.attendance === 'no' ? 'bg-rose-500' : 'bg-emerald-500'
+                          }`}></span>
+                        <span className="font-medium">
+                          {resp.attendance === 'no' ? (
+                            <span className="text-rose-600 font-semibold">Қатыса алмайды</span>
+                          ) : (
+                            <span>Келеді: <strong className="text-emerald-600 font-bold font-sans text-xs">{resp.guestCount || 1} адам</strong></span>
+                          )}
                         </span>
                         <span className="text-[9px] text-[#A68864]/50">• {resp.timestamp}</span>
                       </div>
@@ -264,6 +290,6 @@ export const RSVPForm: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };

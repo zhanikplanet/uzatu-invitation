@@ -1,15 +1,14 @@
 import React from 'react';
-import { MapPin, Navigation, Compass, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, Compass } from 'lucide-react';
 
 export const MapWidget: React.FC = () => {
-  const address = "Алматы қаласы, Қыран көшесі, 9, «BAQ SARAI» тойханасы";
+  const address = "Алматы қаласы, Ибрагим Кулланулы көшесі, 132/1, «AQPEIL» мейрамханасы";
   
-  // Real active maps URLs for navigation in Kazakhstan
-  // Baq Sarai banquet hall coordinates can be mapped cleanly
+  // Real active maps URLs for navigation to Aqpeil Restaurant in Almaty
   const mapLinks = {
-    twoGis: "https://2gis.kz/almaty/search/улица%20Кыран%209",
-    yandex: "https://yandex.kz/maps/?text=Алматы%2C+улица+Кыран%2C+9+Baq+Sarai",
-    google: "https://www.google.com/maps/search/?api=1&query=Almaty+Kyran+street+9+Baq+Sarai"
+    twoGis: "https://2gis.kz/almaty/geo/70000001101735389",
+    yandex: "https://yandex.kz/maps/?text=Алматы%2C+Ибрагим+Кулланулы%2C+132/1+Aqpeil",
+    google: "https://www.google.com/maps/search/?api=1&query=43.190306,76.892015(Aqpeil+Restaurant)"
   };
 
   return (
@@ -54,7 +53,7 @@ export const MapWidget: React.FC = () => {
           
           {/* Mini location label on the map */}
           <span className="mt-1.5 px-2 py-0.5 rounded-md bg-white/95 text-[10px] font-semibold text-[#8C6239] tracking-wider uppercase border border-[#DFBA81]/30 shadow-sm font-sans whitespace-nowrap">
-            BAQ SARAI
+            AQPEIL
           </span>
         </div>
 
@@ -75,7 +74,6 @@ export const MapWidget: React.FC = () => {
           rel="noopener noreferrer"
           className="flex flex-col items-center justify-center p-3.5 bg-white/90 shadow-sm rounded-xl border border-emerald-500/20 hover:border-emerald-500 hover:bg-emerald-50/20 active:scale-95 transition-all text-center group"
         >
-          {/* Customized 2GIS styled logo icon */}
           <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold font-sans text-xs group-hover:scale-110 transition-transform">
             2GIS
           </div>

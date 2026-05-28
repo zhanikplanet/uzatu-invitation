@@ -3,8 +3,8 @@ import { CountdownState } from '../types';
 
 export const Countdown: React.FC = () => {
   const calculateTimeLeft = (): CountdownState => {
-    // September 28, 2026 at 17:00:00
-    const targetDate = new Date('2026-09-28T17:00:00').getTime();
+    // August 18, 2026 at 17:00:00
+    const targetDate = new Date('2026-08-18T17:00:00').getTime();
     const difference = targetDate - new Date().getTime();
 
     let timeLeft: CountdownState = { days: 0, hours: 0, minutes: 0, seconds: 0 };

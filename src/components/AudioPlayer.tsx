@@ -140,7 +140,7 @@ export const AudioPlayer: React.FC = () => {
       {/* Hidden audio element loading a pristine, high-quality traditional Kazakh wedding melody */}
       <audio 
         ref={audioRef}
-        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" // Premium fallback standard loop
+        src="/uzatu-invitation/ukili-kamshat.mp3" // Premium fallback standard loop
         loop
         preload="auto"
         className="hidden"
