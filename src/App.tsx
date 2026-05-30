@@ -352,7 +352,7 @@ export default function App() {
               </p>
               <p className="text-sm font-semibold text-[#8C6239] leading-relaxed max-w-xs mx-auto font-sans px-4">
                 Талдықорған,<br />
-                Ибрагим Кулланулы көшесі, 132/1<br />
+                И. Жансугурова, 5Б<br />
                 <span className="text-[11px] font-normal text-gray-500 block mt-1">(Халықаралық әл-Фараби колледжінің жанында)</span>
               </p>
             </div>

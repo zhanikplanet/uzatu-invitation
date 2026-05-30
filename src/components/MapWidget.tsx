@@ -3,14 +3,13 @@ import { MapPin, Navigation, Compass } from 'lucide-react';
 
 export const MapWidget: React.FC = () => {
   const address = "Алматы қаласы, Ибрагим Кулланулы көшесі, 132/1, «AQPEIL» мейрамханасы";
-  
+
   // Real active maps URLs for navigation to Aqpeil Restaurant in Almaty
   const mapLinks = {
     twoGis: "https://2gis.kz/almaty/geo/70000001101735389",
     yandex: "https://yandex.kz/maps/?text=Алматы%2C+Ибрагим+Кулланулы%2C+132/1+Aqpeil",
-    google: "https://www.google.com/maps/search/?api=1&query=43.190306,76.892015(Aqpeil+Restaurant)"
+    google: "https://maps.google.com/?q=Aqpeil+Алматы+Кулланулы+132/1"
   };
-
   return (
     <div id="location-map-widget" className="w-full max-w-sm mx-auto px-4 my-4">
       {/* Decorative premium map preview frame */}
@@ -22,15 +21,15 @@ export const MapWidget: React.FC = () => {
           <path d="M-10,140 L410,140" stroke="#DFBA81" strokeWidth="6" />
           <path d="M100,-10 L100,210" stroke="#DFBA81" strokeWidth="5" />
           <path d="M280,-10 L280,210" stroke="#DFBA81" strokeWidth="4" strokeDasharray="5,3" />
-          
+
           {/* Secondary streets */}
           <path d="M30,30 L150,150" stroke="#C5A074" strokeWidth="2.5" />
           <path d="M250,30 L350,180" stroke="#C5A074" strokeWidth="2" />
-          
+
           {/* Parks & River */}
           <rect x="120" y="60" width="140" height="60" rx="10" fill="#E8DEC9" />
           <path d="M-10,180 Q100,160 200,190 T410,170" stroke="#DFBA81" strokeWidth="3" fill="none" />
-          
+
           {/* Compass Rose */}
           <g transform="translate(45, 100) scale(0.6)">
             <circle cx="20" cy="20" r="18" stroke="#C5A074" strokeWidth="1" />
@@ -45,12 +44,12 @@ export const MapWidget: React.FC = () => {
         <div className="absolute left-[50%] top-[45%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
           <span className="absolute w-8 h-8 rounded-full bg-[#8C6239]/20 animate-ping"></span>
           <span className="absolute w-12 h-12 rounded-full bg-[#DFBA81]/15 animate-pulse-ring"></span>
-          
+
           {/* Elegant active red-gold pin */}
           <div className="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-[#8C6239] text-white shadow-lg border-2 border-white transform hover:scale-110 transition-transform duration-300">
             <MapPin className="w-5 h-5 text-[#F5E3B3] animate-[bounce_1.5s_infinite]" />
           </div>
-          
+
           {/* Mini location label on the map */}
           <span className="mt-1.5 px-2 py-0.5 rounded-md bg-white/95 text-[10px] font-semibold text-[#8C6239] tracking-wider uppercase border border-[#DFBA81]/30 shadow-sm font-sans whitespace-nowrap">
             AQPEIL
